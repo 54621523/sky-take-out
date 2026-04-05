@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.sky.order.mapper.OrderMapper">
+
+    <update id="processTimeoutOrder">
+        update orders
+        set status = #{target},
+        cancel_reason = #{cancelReason},
+        cancel_time = #{now}
+        where status = #{source}
+        and order_time &lt; #{timeout}
+    </update>
+    <select id="getByNumber" resultType="com.sky.order.domain.po.Orders">
+        select * from orders where number = #{number}
+    </select>
+    <select id="getById" resultType="com.sky.order.domain.po.Orders">
+        select * from orders where id = #{id}
+    </select>
+    <select id="page4User" resultType="com.sky.order.domain.po.Orders">
+        select * from orders
+        <where>
+            <if test="status != null">
+                and status = #{status}
+            </if>
+                and user_id = #{userId}
+        </where>
+    </select>
+    <select id="page4Shop" resultType="com.sky.order.domain.po.Orders">
+        select * from orders
+        <where>
+            <if test="status != null">
+                and status = #{status}
+            </if>
+            <if test="phone != null and phone != ''">
+                and phone like concat('%',#{phone},'%')
+            </if>
+            <if test="number != null and number != ''">
+                and number like concat('%',#{number},'%')
+            </if>
+            <if test="beginTime != null">
+                and order_time &gt;= #{beginTime}
+            </if>
+            <if test="endTime != null">
+                and order_time &lt;= #{endTime}
+            </if>
+        </where>
+    </select>
+
+    <select id="countStatus" resultType="java.lang.Integer">
+        select
+        count(id) as totalCount,
+        sum(amount) as totalAmount
+        from orders
+        <where>
+            <if test="status != null">
+                and status = #{status}
+            </if>
+        </where>
+    </select>
+    <select id="turnoverStatistics" resultType="com.sky.order.vo.TurnoverReportVO">
+        SELECT
+        GROUP_CONCAT(orderDate ORDER BY orderDate SEPARATOR ',') AS dateList,
+        GROUP_CONCAT(turnover ORDER BY orderDate SEPARATOR ',') AS turnoverList
+        FROM (
+        SELECT
+        DATE(order_time) AS orderDate,
+        COALESCE(SUM(amount), 0) AS turnover
+        FROM orders
+        WHERE order_time &gt;= #{beginTime}
+        AND order_time &lt;= DATE_ADD(#{endTime}, INTERVAL 1 DAY)
+        AND status = 5
+        GROUP BY DATE(order_time)
+        ) AS daily_stats;
+    </select>
+    <select id="ordersStatistics" resultType="com.sky.order.vo.OrderReportVO">
+        select
+            GROUP_CONCAT(orderDate ORDER BY orderDate SEPARATOR ',') AS dateList,
+            GROUP_CONCAT(orderCount ORDER BY orderDate SEPARATOR ',') AS orderCountList,
+            GROUP_CONCAT(validOrderCount ORDER BY orderDate SEPARATOR ',') AS validOrderCountList,
+            SUM(orderCount) AS totalOrderCount,
+            SUM(validOrderCount) AS validOrderCount,
+            ROUND(SUM(validOrderCount) / SUM(orderCount), 2) AS orderCompletionRate
+        from (
+            select
+                DATE(order_time) AS orderDate,
+                COUNT(*) AS orderCount,
+                SUM(IF(status = 5, 1, 0)) AS validOrderCount
+            from orders
+            where order_time &gt;= #{beginTime}
+            and order_time &lt;= DATE_ADD(#{endTime}, INTERVAL 1 DAY)
+            group by DATE(order_time)
+             )AS daily_stats;
+    </select>
+    <select id="top10" resultType="com.sky.order.vo.SalesTop10ReportVO">
+        select
+            GROUP_CONCAT(name ORDER BY number DESC SEPARATOR ',') AS nameList,
+            GROUP_CONCAT(number ORDER BY number DESC SEPARATOR ',') AS numberList
+        from (
+            select
+                od.name AS name,
+                COUNT(*) AS number
+            from orders o
+            left join order_detail od
+            on o.id = od.order_id
+            where o.order_time &gt;= #{beginTime}
+            and o.order_time &lt;= DATE_ADD(#{endTime}, INTERVAL 1 DAY)
+            group by od.name
+            )AS daily_stats;
+    </select>
+
+    <select id="getOverViewOrders" resultType="com.sky.order.vo.OrderOverViewVO">
+        select
+            count(*) as allOrders,
+            sum(case when status = 6 then 1 else 0 end) as cancelledOrders,
+            sum(case when status = 5 then 1 else 0 end) as completedOrders,
+            sum(case when status = 3 then 1 else 0 end) as deliveredOrders,
+            sum(case when status = 2 then 1 else 0 end) as waitingOrders
+        from orders
+    </select>
+</mapper>

@@ -1,0 +1,20 @@
+server:
+  port: 8120
+
+spring:
+  application:
+    name: sky-goods-query-service
+  profiles:
+    active: dev
+  cloud:
+    nacos:
+      config:
+        server-addr: 127.0.0.1:8848
+        file-extension: yaml
+        shared-configs:
+          - data-id: common-datasource.yaml
+          - data-id: common-dubbo.yaml
+          - data-id: common-redis.yaml
+          - data-id: common-log.yaml
+      discovery:
+        server-addr: 127.0.0.1:8848

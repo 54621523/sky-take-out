@@ -1,0 +1,100 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: sky-gateway-service
+  profiles:
+    active: dev
+  main:
+    allow-circular-references: true
+    web-application-type: reactive
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.websocket.reactive.WebSocketReactiveAutoConfiguration
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8848
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      routes:
+        - id: admin-order
+          uri: lb://sky-admin-order-service
+          predicates:
+            - Path=/admin/order/**
+
+        - id: admin-report
+          uri: lb://sky-admin-order-service
+          predicates:
+            - Path=/admin/report/**
+
+        - id: admin-operation
+          uri: lb://sky-admin-operation-service
+          predicates:
+            - Path=/admin/**
+
+        - id: user-order
+          uri: lb://sky-user-order-service
+          predicates:
+            - Path=/user/order/**
+
+        - id: cart-service
+          uri: lb://sky-cart-service
+          predicates:
+            - Path=/user/shoppingCart/**
+
+        - id: user-service
+          uri: lb://sky-user-service
+          predicates:
+            - Path=/user/user/**
+
+        - id: user-address-service
+          uri: lb://sky-user-service
+          predicates:
+            - Path=/user/addressBook/**
+
+        - id: setmeal-query-service
+          uri: lb://sky-goods-query-service
+          predicates:
+            - Path=/user/setmeal/**
+
+        - id: dish-query-service
+          uri: lb://sky-goods-query-service
+          predicates:
+            - Path=/user/dish/**
+
+        - id: category-query-service
+          uri: lb://sky-goods-query-service
+          predicates:
+            - Path=/user/category/**
+
+        - id: shop-query-service
+          uri: lb://sky-goods-query-service
+          predicates:
+            - Path=/user/shop/**
+
+        - id: websocket
+          uri: lb:ws://sky-order-service
+          predicates:
+            - Path=/ws/**
+
+    loadbalancer:
+      retry:
+        enabled: true
+
+sky:
+  jwt:
+    admin-secret-key: itcast
+    admin-ttl: 7200000
+    admin-token-name: token
+    user-secret-key: itcast
+    user-ttl: 7200000
+    user-token-name: authentication
+

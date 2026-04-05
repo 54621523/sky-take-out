@@ -1,0 +1,14 @@
+spring:
+  main:
+    allow-circular-references: true
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+sky:
+  wechat:
+    appid: ${appid}
+    secret: ${secret}
+  jwt:
+    user-secret-key: itcast
+    user-ttl: 7200000
+    user-token-name: authentication

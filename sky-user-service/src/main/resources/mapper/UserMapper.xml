@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.sky.user.mapper.UserMapper">
+
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        insert into user (openid,name, phone, sex, id_number, avatar, create_time)
+        values (#{openid}, #{name}, #{phone}, #{sex}, #{idNumber}, #{avatar}, #{createTime})
+    </insert>
+    <select id="getByUserId" resultType="com.sky.user.domain.po.User">
+        select * from user where id = #{userId}
+    </select>
+    <select id="userStatistics" resultType="com.sky.user.vo.UserReportVO">
+        SELECT
+        GROUP_CONCAT(date ORDER BY date SEPARATOR ',') AS dateList,
+        GROUP_CONCAT(totalUser ORDER BY date SEPARATOR ',') AS totalUserList,
+        GROUP_CONCAT(newUser ORDER BY date SEPARATOR ',') AS newUserList
+        FROM (
+        SELECT
+        DATE(create_time) AS date,
+        COUNT(id) AS totalUser,
+        SUM(IF(create_time >= DATE_SUB(CURDATE(), INTERVAL 1 DAY), 1, 0)) AS newUser
+        FROM user
+        WHERE create_time &gt;= #{beginTime}
+        AND create_time &lt;= #{endTime}
+        GROUP BY DATE(create_time)
+        ) AS daily_stats;
+    </select>
+</mapper>

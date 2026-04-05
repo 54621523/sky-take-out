@@ -1,0 +1,19 @@
+spring:
+  main:
+    allow-circular-references: true
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+
+mybatis-plus:
+  type-aliases-package: com.sky.admin.operation.domain
+sky:
+  jwt:
+    admin-secret-key: itcast
+    admin-ttl: 7200000
+    admin-token-name: token
+  minio:
+    endpoint: {host}
+    access-key: {access-key}
+    secret-key: {secret-key}
+    bucket-name: {bucket-name}

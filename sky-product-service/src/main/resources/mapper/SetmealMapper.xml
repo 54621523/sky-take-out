@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.sky.product.mapper.SetmealMapper">
+
+
+    <select id="pageQuery" resultType="com.sky.product.domain.po.Setmeal">
+        select s.*,c.name As categoryName from setmeal s left join category c
+        on s.category_id = c.id
+        <where>
+            <if test="name != null and name != ''">
+                and name like '%${name}%'
+            </if>
+            <if test="categoryId != null">
+                and category_id = #{categoryId}
+            </if>
+            <if test="status != null">
+                and status = #{status}
+            </if>
+        </where>
+        order by create_time desc
+    </select>
+
+    <select id="getOverViewSetmeals" resultType="com.sky.product.vo.SetmealOverViewVO">
+        select
+            sum(case when status = 1 then 1 else 0 end) as sold,
+            sum(case when status = 0 then 1 else 0 end) as discontinued
+        from setmeal
+    </select>
+</mapper>

@@ -1,0 +1,19 @@
+server:
+  port: 8110
+
+spring:
+  application:
+    name: sky-order-service
+  profiles:
+    active: dev
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8848
+      config:
+        server-addr: 127.0.0.1:8848
+        file-extension: yaml
+        shared-configs:
+          - data-id: common-datasource.yaml
+          - data-id: common-dubbo.yaml
+          - data-id: common-log.yaml

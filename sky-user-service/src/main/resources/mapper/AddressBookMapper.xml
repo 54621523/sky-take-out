@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.sky.user.mapper.AddressBookMapper">
+
+    <insert id="insert">
+        insert into address_book (user_id, sex, province_name, province_code, phone, label, is_default, district_name, district_code, detail,consignee, city_name,city_code)
+        values (#{userId}, #{sex}, #{provinceName}, #{provinceCode}, #{phone}, #{label}, #{isDefault}, #{districtName}, #{districtCode}, #{detail},#{consignee}, #{cityName},#{cityCode})
+    </insert>
+    <update id="update">
+        update address_book
+        <set>
+            <if test="sex != null">sex = #{sex},</if>
+            <if test="provinceName != null">province_name = #{provinceName},</if>
+            <if test="provinceCode != null">province_code = #{provinceCode},</if>
+            <if test="phone != null">phone = #{phone},</if>
+            <if test="label != null">label = #{label},</if>
+            <if test="isDefault != null">is_default = #{isDefault},</if>
+            <if test="districtName != null">district_name = #{districtName},</if>
+            <if test="districtCode != null">district_code = #{districtCode},</if>
+            <if test="detail != null">detail = #{detail},</if>
+            <if test="consignee != null">consignee = #{consignee},</if>
+            <if test="cityName != null">city_name = #{cityName},</if>
+            <if test="cityCode != null">city_code = #{cityCode},</if>
+        </set>
+        <where>
+            <if test="id != null">id = #{id}</if>
+        </where>
+    </update>
+
+    <update id="setDefault">
+        update address_book set is_default = 1 where id = #{id}
+    </update>
+    <update id="deleteDefault">
+         update address_book set is_default = 0 where user_id = #{userId}
+    </update>
+    <delete id="deleteById">
+        delete from address_book where id = #{id}
+    </delete>
+    <select id="listByUserId" resultType="com.sky.user.domain.po.AddressBook">
+        select * from address_book where user_id = #{userId}
+    </select>
+    <select id="getDefault" resultType="com.sky.user.domain.po.AddressBook">
+        select * from address_book where user_id = #{userId} and is_default = 1
+    </select>
+    <select id="getById" resultType="com.sky.user.domain.po.AddressBook">
+        select * from address_book where id = #{id}
+    </select>
+</mapper>
