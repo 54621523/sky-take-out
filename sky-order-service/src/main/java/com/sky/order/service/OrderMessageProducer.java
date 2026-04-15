@@ -2,6 +2,7 @@ package com.sky.order.service;
 
 
 import com.sky.order.constant.OrderRabbitMQConstant;
+import com.sky.order.dto.OrderCartClearMessage;
 import com.sky.order.dto.OrderMessageDTO;
 import com.sky.websocket.constant.WebSocketRabbitMQConstant;
 import lombok.extern.slf4j.Slf4j;
@@ -47,5 +48,16 @@ public class OrderMessageProducer {
                 message
         );
         log.info("催单消息发送成功");
+    }
+
+    public void sendCartClearMessage(OrderCartClearMessage message) {
+        log.info("发送清空购物车消息, userId: {}, orderNumber: {}",
+                message.getUserId(), message.getOrderNumber());
+        rabbitTemplate.convertAndSend(
+                WebSocketRabbitMQConstant.ORDER_NOTIFY_EXCHANGE,
+                com.sky.cart.constant.CartRabbitMQConstant.ORDER_CART_CLEAR_ROUTING_KEY,
+                message
+        );
+        log.info("清空购物车消息发送成功");
     }
 }

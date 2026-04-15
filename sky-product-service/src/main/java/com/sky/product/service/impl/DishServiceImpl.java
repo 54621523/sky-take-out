@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
+import com.meilisearch.sdk.model.SearchResultPaginated;
 import com.sky.constant.MessageConstant;
 import com.sky.constant.StatusConstant;
 import com.sky.exception.DeletionNotAllowedException;
@@ -12,6 +13,10 @@ import com.sky.product.dto.DishDTO;
 import com.sky.product.dto.DishPageQueryDTO;
 import com.sky.product.dubboService.DishDubboService;
 import com.sky.product.mapper.CategoryMapper;
+import com.sky.product.respository.DishSearchRepository;
+import com.sky.product.service.DishSearchMessageProducer;
+import com.sky.product.service.DishSearchService;
+import com.sky.product.service.DishSyncService;
 import com.sky.product.vo.DishOverViewVO;
 import com.sky.product.vo.DishVO;
 import com.sky.result.PageResult;
@@ -22,6 +27,7 @@ import com.sky.product.mapper.mapstruct.ProductMapper;
 import com.sky.product.mapper.SetmealDishMapper;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.transaction.annotation.Transactional;
 import com.sky.product.service.DishService;
 
@@ -43,6 +49,10 @@ public class DishServiceImpl extends ServiceImpl<DishMapper,Dish> implements Dis
     private SetmealDishMapper setmealDishMapper;
     @Autowired
     private CategoryMapper categoryMapper;
+    @Autowired
+    private DishSearchService dishSearchService;
+    @Autowired
+    private DishSearchMessageProducer dishSearchMessageProducer;
 
     /**
      * 新增菜品和对应的口味
@@ -61,7 +71,7 @@ public class DishServiceImpl extends ServiceImpl<DishMapper,Dish> implements Dis
                 flavors.forEach( flavor -> flavor.setDishId(dish.getId()));
                 dishFlavorMapper.insert(flavors);
         }
-        //dishSearchMessageProducer.sendSyncMessage(dish.getId(), "sync");
+        dishSearchMessageProducer.sendSyncMessage(dish.getId());
     }
 
     /**
@@ -71,8 +81,19 @@ public class DishServiceImpl extends ServiceImpl<DishMapper,Dish> implements Dis
      */
     @Override
     public PageResult pageQuery(DishPageQueryDTO dishPageQueryDTO) {
-
-        PageHelper.startPage(dishPageQueryDTO.getPage(),dishPageQueryDTO.getPageSize());
+        try {
+            return dishSearchService.searchAndConvert(
+                    dishPageQueryDTO.getName(),
+                    dishPageQueryDTO.getPage(),
+                    dishPageQueryDTO.getPageSize(),
+                    dishPageQueryDTO.getCategoryId() != null ? Long.valueOf(dishPageQueryDTO.getCategoryId()) : null,
+                    dishPageQueryDTO.getStatus(),
+                    false
+            );
+        }catch (Exception e){
+            log.warn("Meilisearch搜索失败，降级到MySQL: {}", e.getMessage());
+        }
+            PageHelper.startPage(dishPageQueryDTO.getPage(),dishPageQueryDTO.getPageSize());
         Page<DishVO> page = dishMapper.pageQuery(dishPageQueryDTO);
         return new PageResult(page.getTotal(),new ArrayList<>(page.getResult()));
     }
@@ -109,6 +130,8 @@ public class DishServiceImpl extends ServiceImpl<DishMapper,Dish> implements Dis
                 .id(id)
                 .build();
         dishMapper.updateById(dish);
+        dishSearchMessageProducer.sendSyncMessage(id);
+
     }
 
     /**
@@ -129,6 +152,7 @@ public class DishServiceImpl extends ServiceImpl<DishMapper,Dish> implements Dis
                     .eq(DishFlavor::getDishId,dish.getId()));
             dishFlavorMapper.insert(flavors);
         }
+        dishSearchMessageProducer.sendSyncMessage(dish.getId());
     }
 
     /**
@@ -155,10 +179,23 @@ public class DishServiceImpl extends ServiceImpl<DishMapper,Dish> implements Dis
 
             dishFlavorMapper.delete(new LambdaQueryWrapper<DishFlavor>()
                     .in(DishFlavor::getDishId,ids));
+            for (Long id : ids) {
+                dishSearchMessageProducer.sendDeleteMessage(id);
+            }
     }
 
     @Override
+    @Cacheable(cacheNames = "dishCache", key = "#categoryId")
     public List<DishVO> listWithFlavors(Long categoryId) {
+        try {
+            PageResult pageResult = dishSearchService.searchAndConvert(
+                    null, 1, 100, categoryId, StatusConstant.ENABLE, true
+            );
+            List<DishVO> dishes = pageResult.getRecords();
+            return dishes.isEmpty() ? Collections.emptyList() : dishes;
+        } catch (Exception e) {
+            log.warn("Meilisearch搜索失败，降级到MySQL: {}", e.getMessage());
+        }
 
         List<Dish> dishes = dishMapper.selectList(new LambdaQueryWrapper<Dish>()
                 .in(Dish::getCategoryId,categoryId));

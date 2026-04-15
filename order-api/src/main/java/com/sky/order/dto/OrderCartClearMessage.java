@@ -1,4 +1,4 @@
-package com.sky.product.dto;
+package com.sky.order.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -6,15 +6,14 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
-import java.util.List;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class DishSearchDeleteMessage implements Serializable {
+public class OrderCartClearMessage implements Serializable {
 
-    private static final long serialVersionUID = 1L;
+    private Long userId;
 
-    private List<Long> dishIds;
+    private String orderNumber;
 }

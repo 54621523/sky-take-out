@@ -17,7 +17,10 @@ import com.sky.product.mapper.DishMapper;
 import com.sky.product.mapper.SetmealDishMapper;
 import com.sky.product.mapper.SetmealMapper;
 import com.sky.product.mapper.mapstruct.ProductMapper;
+import com.sky.product.service.SetmealSearchMessageProducer;
+import com.sky.product.service.SetmealSearchService;
 import com.sky.product.service.SetmealService;
+import com.sky.product.service.SetmealSyncService;
 import com.sky.product.vo.SetmealDishVO;
 import com.sky.product.vo.SetmealOverViewVO;
 import com.sky.product.vo.SetmealVO;
@@ -28,10 +31,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 @DubboService(interfaceClass = SetmealDubboService.class)
 @Slf4j
@@ -44,6 +44,12 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper,Setmeal> imple
     private SetmealDishMapper setmealDishMapper;
     @Autowired
     private DishMapper dishMapper;
+    @Autowired
+    private SetmealSyncService setmealSyncService;
+    @Autowired
+    private SetmealSearchService setmealSearchService;
+    @Autowired
+    private SetmealSearchMessageProducer setmealSearchMessageProducer;
 
     /**
      * 新增套餐，同时需要保存套餐和菜品的关联关系
@@ -58,6 +64,7 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper,Setmeal> imple
         List<SetmealDish> setmealDishes = ProductMapper.INSTANCE.setmealDishDto2Po(setmealDTO.getSetmealDishes());
         setmealDishes.forEach(setmealDish -> setmealDish.setSetmealId(setmeal.getId()));
         setmealDishMapper.insert(setmealDishes);
+        setmealSearchMessageProducer.sendSyncMessage(setmeal.getId());
     }
 
     @Override
@@ -74,6 +81,20 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper,Setmeal> imple
 
     @Override
     public PageResult pageQuery(SetmealPageQueryDTO setmealPageQueryDTO) {
+        try {
+            return setmealSearchService.searchAndConvert(
+                    setmealPageQueryDTO.getName(),
+                    setmealPageQueryDTO.getPage(),
+                    setmealPageQueryDTO.getPageSize(),
+                    setmealPageQueryDTO.getCategoryId() != null ? Long.valueOf(setmealPageQueryDTO.getCategoryId()) : null,
+                    setmealPageQueryDTO.getStatus(),
+                    false
+            );
+        } catch (Exception e) {
+            log.warn("Meilisearch搜索失败，降级到MySQL: {}", e.getMessage());
+        }
+
+
         PageHelper.startPage(setmealPageQueryDTO.getPage(),setmealPageQueryDTO.getPageSize());
         Page<SetmealVO> page = setmealMapper.pageQuery(setmealPageQueryDTO);
         return new PageResult(page.getTotal(),new ArrayList<>(page.getResult()));
@@ -93,6 +114,7 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper,Setmeal> imple
             setmealDishes.forEach(setmealDish -> setmealDish.setSetmealId(setmeal.getId()));
             setmealDishMapper.insert(setmealDishes);
         }
+        setmealSearchMessageProducer.sendSyncMessage(setmeal.getId());
     }
 
     @Override
@@ -122,6 +144,7 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper,Setmeal> imple
                 .status(status)
                 .build();
         setmealMapper.updateById(setmeal);
+        setmealSearchMessageProducer.sendSyncMessage(id);
     }
 
     @Override
@@ -137,11 +160,22 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper,Setmeal> imple
             setmealDishMapper.delete(new LambdaQueryWrapper<SetmealDish>()
                     .in(SetmealDish::getSetmealId,ids));
             setmealMapper.deleteByIds(ids);
+        ids.forEach(id -> setmealSearchMessageProducer.sendDeleteMessage(id));
     }
 
     @Cacheable(cacheNames = "setmealCache", key = "#categoryId")
     @Override
     public List<SetmealVO> list(Long categoryId) {
+        try {
+            PageResult pageResult = setmealSearchService.searchAndConvert(
+                    null, 1, 100, categoryId, 1, false
+            );
+            List<SetmealVO> setmeals = pageResult.getRecords();
+            return setmeals.isEmpty() ? Collections.emptyList() : setmeals;
+        } catch (Exception e) {
+            log.warn("Meilisearch搜索失败，降级到MySQL: {}", e.getMessage());
+        }
+
         return ProductMapper.INSTANCE.setmealPo2Vo(setmealMapper.selectList(new LambdaQueryWrapper<Setmeal>()
                 .eq(Setmeal::getCategoryId,categoryId)));
     }

@@ -29,6 +29,7 @@ public class CommonController {
     @ApiOperation("文件上传")
     public Result<String> upload(MultipartFile file){
         String fileUrl = commonService.upload(file);
-        return Result.success(fileUrl);
+        return Result.success("1");
+        //return Result.success(fileUrl);
     }
 }

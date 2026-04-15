@@ -33,6 +33,16 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    public Queue setmealSearchSyncQueue() {
+        return QueueBuilder.durable(ProductRabbitMQConstant.SETMEAL_SEARCH_SYNC_QUEUE).build();
+    }
+
+    @Bean
+    public Queue setmealSearchDeleteQueue() {
+        return QueueBuilder.durable(ProductRabbitMQConstant.SETMEAL_SEARCH_DELETE_QUEUE).build();
+    }
+
+    @Bean
     public Binding dishSearchSyncBinding(Queue dishSearchSyncQueue, TopicExchange productExchange) {
         return BindingBuilder.bind(dishSearchSyncQueue)
                 .to(productExchange)
@@ -44,5 +54,17 @@ public class RabbitMQConfig {
         return BindingBuilder.bind(dishSearchDeleteQueue)
                 .to(productExchange)
                 .with(ProductRabbitMQConstant.DISH_SEARCH_DELETE_ROUTING_KEY);
+    }
+    @Bean
+    public Binding setmealSearchDeleteBinding(Queue setmealSearchDeleteQueue, TopicExchange productExchange) {
+        return BindingBuilder.bind(setmealSearchDeleteQueue)
+                .to(productExchange)
+                .with(ProductRabbitMQConstant.SETMEAL_SEARCH_DELETE_ROUTING_KEY);
+    }
+    @Bean
+    public Binding setmealSearchSyncBinding(Queue setmealSearchSyncQueue, TopicExchange productExchange) {
+        return BindingBuilder.bind(setmealSearchSyncQueue)
+                .to(productExchange)
+                .with(ProductRabbitMQConstant.SETMEAL_SEARCH_SYNC_ROUTING_KEY);
     }
 }

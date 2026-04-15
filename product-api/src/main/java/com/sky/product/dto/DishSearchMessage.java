@@ -11,11 +11,12 @@ import java.io.Serializable;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class DishSearchSyncMessage implements Serializable {
-
-    private static final long serialVersionUID = 1L;
+public class DishSearchMessage implements Serializable {
 
     private Long dishId;
 
-    private String operation;
+    private String operationType;
+
+    public static final String OPERATION_SYNC = "SYNC";
+    public static final String OPERATION_DELETE = "DELETE";
 }

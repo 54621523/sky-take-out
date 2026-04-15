@@ -25,6 +25,7 @@ import com.sky.result.PageResult;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -138,6 +139,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper,Category> im
      * @param type
      * @return
      */
+    @Cacheable(cacheNames = "categoryCache", key = "#type")
     public List<CategoryVO> list(Integer type) {
         if(type == null){
             List<Category> categories = categoryMapper.selectList(new LambdaQueryWrapper<Category>()

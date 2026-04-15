@@ -109,7 +109,12 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
         }).toList();
         orderDetailMapper.insertBatch(orderDetailList);
         //清空购物车
-        shoppingCartService.clean();
+        OrderCartClearMessage cartClearMessage = OrderCartClearMessage.builder()
+                .userId(UserId)
+                .orderNumber(orders.getNumber())
+                .build();
+        orderMessageProducer.sendCartClearMessage(cartClearMessage);
+
 
         OrderMessageDTO timeoutMessage = OrderMessageDTO.builder()
                 .orderId(orders.getId())
