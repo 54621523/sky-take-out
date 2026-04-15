@@ -34,6 +34,18 @@
                     <groupId>org.apache.tomcat.embed</groupId>
                     <artifactId>tomcat-embed-core</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>com.baomidou</groupId>
+                    <artifactId>mybatis-plus-boot-starter</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.alibaba</groupId>
+                    <artifactId>druid-spring-boot-starter</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>mysql</groupId>
+                    <artifactId>mysql-connector-java</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <!--网关-->

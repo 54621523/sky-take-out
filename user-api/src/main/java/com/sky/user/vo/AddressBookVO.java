@@ -7,7 +7,9 @@ import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 
-
+/**
+ * 地址视图对象
+ */
 @Data
 @Builder
 @NoArgsConstructor

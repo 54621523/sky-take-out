@@ -1,10 +1,13 @@
 package com.sky.product.dubboService;
 
+import com.sky.exception.BaseException;
 import com.sky.product.dto.CategoryDTO;
 import com.sky.product.dto.CategoryPageQueryDTO;
 import com.sky.product.vo.CategoryVO;
 import com.sky.result.PageResult;
+import org.springframework.dao.DuplicateKeyException;
 
+import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.List;
 
 public interface CategoryDubboService {
@@ -13,7 +16,7 @@ public interface CategoryDubboService {
      * 新增分类
      * @param categoryDTO
      */
-    void save(CategoryDTO categoryDTO);
+    void save(CategoryDTO categoryDTO) throws BaseException, DuplicateKeyException;
 
     /**
      * 分类分页查询

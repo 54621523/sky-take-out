@@ -3,7 +3,11 @@ package com.sky.product.vo;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.time.LocalDateTime;
 
+/**
+ * 分类视图对象
+ */
 @Data
 public class CategoryVO implements Serializable {
 
@@ -18,5 +22,20 @@ public class CategoryVO implements Serializable {
 
     //排序
     private Integer sort;
+
+    //状态 0禁用 1启用
+    private Integer status;
+
+    //创建时间
+    private LocalDateTime createTime;
+
+    //更新时间
+    private LocalDateTime updateTime;
+
+    //创建人
+    private Long createUser;
+
+    //更新人
+    private Long updateUser;
 
 }

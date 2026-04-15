@@ -4,9 +4,8 @@ spring:
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher
-
-mybatis-plus:
-  type-aliases-package: com.sky.admin.operation.domain
+db:
+  database: sky_admin_operation
 sky:
   jwt:
     admin-secret-key: itcast

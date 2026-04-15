@@ -33,8 +33,7 @@ public interface ProductMapper {
      * PO 转 VO（用于查询返回）
      */
     @Mappings({
-            @Mapping(target = "categoryName", ignore = true),
-            @Mapping(target = "flavors", ignore = true)
+            @Mapping(target = "flavors", ignore = true),
     })
     DishVO dishPo2Vo(Dish dish);
 

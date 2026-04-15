@@ -8,6 +8,9 @@ import lombok.NoArgsConstructor;
 import java.io.Serializable;
 import java.math.BigDecimal;
 
+/**
+ * 订单详情信息
+ */
 @Data
 @Builder
 @NoArgsConstructor

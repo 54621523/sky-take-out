@@ -7,13 +7,15 @@ import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 
+/**
+ * 菜品口味视图对象
+ */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class DishFlavorVO implements Serializable {
 
-    private static final long serialVersionUID = 1L;
 
     private Long id;
     //菜品id

@@ -12,6 +12,9 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * 订单信息
+ */
 @Data
 @Builder
 @NoArgsConstructor

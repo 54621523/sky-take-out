@@ -4,3 +4,8 @@ spring:
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher
+db:
+  database: sky_product
+meilisearch:
+  host-url: http://localhost:7700
+  enabled: true

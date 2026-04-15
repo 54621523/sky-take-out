@@ -26,6 +26,7 @@ public class DishController {
 
     @PostMapping
     @ApiOperation("新增菜品")
+    @CacheEvict(cacheNames = "dishCache", allEntries = true)
     public Result save(@RequestBody DishDTO dishDTO){
         dishService.save(dishDTO);
         return Result.success();
@@ -85,6 +86,7 @@ public class DishController {
      */
     @DeleteMapping
     @ApiOperation("批量删除菜品")
+    @CacheEvict(cacheNames = "dishCache", allEntries = true)
     public Result delete(@RequestParam List<Long> ids){
         dishService.delete(ids);
         return Result.success();

@@ -1,7 +1,6 @@
 package com.sky.order.service.impl;
 
 
-import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -21,13 +20,14 @@ import com.sky.order.dubboService.OrderDubboService;
 import com.sky.order.mapper.OrderDetailMapper;
 import com.sky.order.mapper.OrderMapper;
 import com.sky.order.mapper.mapstruct.OrderMapStruct;
+import com.sky.order.service.OrderMessageProducer;
 import com.sky.order.service.OrderService;
 import com.sky.order.vo.*;
-import com.sky.order.websocket.WebSocketServer;
 import com.sky.result.PageResult;
 import com.sky.user.dubboService.AddressBookDubboService;
 import com.sky.user.vo.AddressBookVO;
 import com.sky.utils.WeChatPayUtil;
+import io.seata.spring.annotation.GlobalTransactional;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.apache.dubbo.config.annotation.DubboService;
@@ -35,10 +35,10 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -63,15 +63,16 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
     @Autowired
     private WeChatPayUtil weChatPayUtil;
     @Autowired
-    private RedisTemplate<String,Object> redisTemplate;
+    private RedisTemplate<Object,Object> redisTemplate;
     @Autowired
-    private WebSocketServer webSocketServer;
+    private OrderMessageProducer orderMessageProducer;
 
 
 
     private volatile String lastDate = "";
 
     @Override
+    @GlobalTransactional(rollbackFor = Exception.class)
     public OrderSubmitVO submit(OrdersSubmitDTO ordersSubmitDTO) {
         Long UserId = BaseContext.getCurrentId();
         //检测购物车内是否有商品
@@ -110,6 +111,15 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
         //清空购物车
         shoppingCartService.clean();
 
+        OrderMessageDTO timeoutMessage = OrderMessageDTO.builder()
+                .orderId(orders.getId())
+                .orderNumber(orders.getNumber())
+                .orderTime(orders.getOrderTime())
+                .status(orders.getStatus())
+                .userId(UserId)
+                .build();
+        orderMessageProducer.sendOrderTimeoutMessage(timeoutMessage);
+
 
         return OrderSubmitVO.builder()
                 .id(orders.getId())
@@ -125,6 +135,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
      * @param ordersPaymentDTO
      * @return
      */
+    @Transactional(rollbackFor = Exception.class)
     public OrderPaymentVO payment(OrdersPaymentDTO ordersPaymentDTO) throws Exception {
         /*
         // 当前登录用户id
@@ -151,8 +162,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
     }
 
     @Override
-    public TurnoverReportVO turnoverStatistics(LocalDate now, LocalDate now1) {
-        return null;
+    public TurnoverReportVO turnoverStatistics(LocalDate begin, LocalDate end) {
+        return orderMapper.turnoverStatistics(begin,end);
     }
 
     /**
@@ -173,13 +184,14 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
                 .checkoutTime(LocalDateTime.now())
                 .build();
                 orderMapper.updateById(orders);
-        Map map = new HashMap();
-        map.put("type",1);
-        map.put("orderid",ordersDB.getId());
-        map.put("content","订单号"+outTradeNo);
-        //将信息转化为JSON字符串格式发送给服务端
-        String JSON = JSONObject.toJSONString(map);
-        webSocketServer.sendToAllClient(JSON);
+        OrderMessageDTO paymentMessage = OrderMessageDTO.builder()
+                .orderId(ordersDB.getId())
+                .orderNumber(outTradeNo)
+                .status(orders.getStatus())
+                .userId(ordersDB.getUserId())
+                .operateTime(LocalDateTime.now())
+                .build();
+        orderMessageProducer.sendPaymentSuccessMessage(paymentMessage);
     }
 
     @Override
@@ -203,37 +215,53 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
         ordersPageQueryDTO.setUserId(BaseContext.getCurrentId());
         PageHelper.startPage(ordersPageQueryDTO.getPage(), ordersPageQueryDTO.getPageSize());
         Page<Orders> page = orderMapper.page4User(ordersPageQueryDTO);
-        List<OrderVO> records = OrderMapStruct.INSTANCE.ordersPo2Vo(page.getResult()).stream().map(orderVO -> {
-            List<OrderDetail> orderDetailList = orderDetailMapper.selectList(new LambdaQueryWrapper<OrderDetail>()
-                    .eq(OrderDetail::getOrderId,orderVO.getId()));
-            if(!orderDetailList.isEmpty()){
-                orderVO.setOrderDetailList(OrderMapStruct.INSTANCE.orderDetailPo2Vo(orderDetailList));
-            }
-            return orderVO;
-        }).toList();
-        return new PageResult(page.getTotal(), records);
+        return buildOrderPageResult(page, false);
     }
 
     @Override
     public PageResult pageQuery4Shop(OrdersPageQueryDTO ordersPageQueryDTO) {
         PageHelper.startPage(ordersPageQueryDTO.getPage(), ordersPageQueryDTO.getPageSize());
         Page<Orders> page = orderMapper.page4Shop(ordersPageQueryDTO);
-        List<OrderVO> records = OrderMapStruct.INSTANCE.ordersPo2Vo(page.getResult()).stream().map(orderVO -> {
-            List<OrderDetail> orderDetailList = orderDetailMapper.selectList(new LambdaQueryWrapper<OrderDetail>()
-                    .eq(OrderDetail::getOrderId,orderVO.getId()));
-            if(!orderDetailList.isEmpty()){
-                String orderDishes = orderDetailList.stream()
-                        .map(OrderDetail::getName)
-                        .collect(Collectors.joining(","));
-                orderVO.setOrderDishes(orderDishes);
+        return buildOrderPageResult(page, true);
+    }
+
+    private PageResult buildOrderPageResult(Page<Orders> page, boolean includeOrderDishes) {
+        List<OrderVO> orderVOList = OrderMapStruct.INSTANCE.ordersPo2Vo(page.getResult());
+
+        if (orderVOList == null || orderVOList.isEmpty()) {
+            return new PageResult(page.getTotal(), orderVOList);
+        }
+
+        List<Long> orderIds = orderVOList.stream()
+                .map(OrderVO::getId)
+                .toList();
+
+        List<OrderDetail> allOrderDetails = orderDetailMapper.selectList(
+                new LambdaQueryWrapper<OrderDetail>()
+                        .in(OrderDetail::getOrderId, orderIds));
+
+        Map<Long, List<OrderDetail>> orderDetailMap = allOrderDetails.stream()
+                .collect(Collectors.groupingBy(OrderDetail::getOrderId));
+
+        List<OrderVO> records = orderVOList.stream().map(orderVO -> {
+            List<OrderDetail> orderDetailList = orderDetailMap.get(orderVO.getId());
+            if (orderDetailList != null && !orderDetailList.isEmpty()) {
+                if (includeOrderDishes) {
+                    String orderDishes = orderDetailList.stream()
+                            .map(OrderDetail::getName)
+                            .collect(Collectors.joining(","));
+                    orderVO.setOrderDishes(orderDishes);
+                }
+                orderVO.setOrderDetailList(OrderMapStruct.INSTANCE.orderDetailPo2Vo(orderDetailList));
             }
             return orderVO;
         }).toList();
 
-        return new PageResult(page.getTotal(),records);
+        return new PageResult(page.getTotal(), records);
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void cancel4User(Long id) {
         orderMapper.update(new LambdaUpdateWrapper<Orders>()
                 .eq(Orders::getId,id)
@@ -243,6 +271,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void cancel4Shop(OrdersCancelDTO ordersCancelDTO) {
         Orders orders = orderMapper.selectById(ordersCancelDTO.getId());
         if(orders == null){
@@ -258,6 +287,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void complete(Long id) {
         orderMapper.update(new LambdaUpdateWrapper<Orders>()
                 .eq(Orders::getId,id)
@@ -265,6 +295,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void delivery(Long id) {
         orderMapper.update(new LambdaUpdateWrapper<Orders>()
                 .eq(Orders::getId,id)
@@ -273,7 +304,6 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
 
     @Override
     public OrderStatisticsVO statistics() {
-        log.info("方法被调用");
         OrderStatisticsVO orderStatisticsVO = new OrderStatisticsVO();
         orderStatisticsVO.setToBeConfirmed(orderMapper.countStatus(Orders.TO_BE_CONFIRMED));
         orderStatisticsVO.setConfirmed(orderMapper.countStatus(Orders.CONFIRMED));
@@ -287,15 +317,17 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
         if(order == null){
             throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
         }
-        Map map = new HashMap();
-        map.put("type",2);
-        map.put("orderid",id);
-        map.put("content","订单号" + id);
-        String JSON = JSONObject.toJSONString(map);
-        webSocketServer.sendToAllClient(JSON);
+        OrderMessageDTO reminderMessage = OrderMessageDTO.builder()
+                .orderId(order.getId())
+                .orderNumber(order.getNumber())
+                .userId(order.getUserId())
+                .content("用户催单")
+                .build();
+        orderMessageProducer.sendOrderReminderMessage(reminderMessage);
     }
 
     @Override
+    @GlobalTransactional(rollbackFor = Exception.class)
     public void repetition(Long id) {
         //查询id对应的订单
         Orders orders = orderMapper.getById(id);
@@ -321,6 +353,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void confirm(Long id) {
         orderMapper.update(new LambdaUpdateWrapper<Orders>()
                 .eq(Orders::getId,id)
@@ -328,6 +361,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void reject(OrdersRejectionDTO ordersRejectionDTO) {
         Orders orders = orderMapper.selectById(ordersRejectionDTO.getId());
         if(orders == null){
@@ -346,10 +380,12 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
                 .set(Orders::getCancelTime,LocalDateTime.now()));
     }
 
+    @Override
     public OrderOverViewVO getOverViewOrders(){
         return orderMapper.getOverViewOrders();
     }
 
+    @Override
     public OrderReportVO ordersStatistics(LocalDate begin, LocalDate end){
         return orderMapper.ordersStatistics(begin,end);
     }

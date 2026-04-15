@@ -1,1 +1,2 @@
 dubboInfoFilter=com.sky.filter.DubboInfoFilter
+rpcLogFilter=com.sky.filter.RpcLogFilter

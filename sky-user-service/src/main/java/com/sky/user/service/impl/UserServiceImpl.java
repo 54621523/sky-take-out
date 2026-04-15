@@ -48,8 +48,7 @@ public class UserServiceImpl implements UserService,UserDubboService {
         String json = HttpClientUtil.doGet(WX_LOGIN, map);
 
         JSONObject jsonObject = JSON.parseObject(json);
-        String openid = jsonObject.getString("openid");
-        return openid;
+        return jsonObject.getString("openid");
     }
 
     @Override
@@ -74,12 +73,11 @@ public class UserServiceImpl implements UserService,UserDubboService {
                 jwtProperties.getUserSecretKey(),
                 jwtProperties.getUserTtl(),
                 claims);
-        UserLoginVO userLoginVO = UserLoginVO.builder()
+        return UserLoginVO.builder()
                 .id(user.getId())
                 .openid(user.getOpenid())
                 .token(token)
                 .build();
-        return userLoginVO;
     }
 
 

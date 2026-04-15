@@ -4,10 +4,9 @@ spring:
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher
+db:
+  database: sky_user
 sky:
-  wechat:
-    appid: ${appid}
-    secret: ${secret}
   jwt:
     user-secret-key: itcast
     user-ttl: 7200000

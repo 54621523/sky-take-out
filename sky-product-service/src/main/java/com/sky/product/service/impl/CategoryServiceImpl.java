@@ -7,6 +7,7 @@ import com.github.pagehelper.PageHelper;
 import com.sky.constant.MessageConstant;
 import com.sky.constant.StatusConstant;
 import com.sky.context.BaseContext;
+import com.sky.exception.BaseException;
 import com.sky.exception.DeletionNotAllowedException;
 import com.sky.product.domain.po.Category;
 import com.sky.product.domain.po.Dish;
@@ -24,7 +25,10 @@ import com.sky.result.PageResult;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.SQLIntegrityConstraintViolationException;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -46,11 +50,18 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper,Category> im
      * 新增分类
      * @param categoryDTO
      */
+    @Transactional(rollbackFor = Exception.class)
     public void save(CategoryDTO categoryDTO) {
+
         Category category = ProductMapper.INSTANCE.categoryDto2Po(categoryDTO);
 
         category.setStatus(StatusConstant.DISABLE);
-        categoryMapper.insert(category);
+        try {
+            categoryMapper.insert(category);
+        }catch ( DuplicateKeyException e){
+            log.warn("分类名称已存在：{}", categoryDTO.getName());
+            throw new BaseException(MessageConstant.ALREADY_EXISTS);
+        }
     }
 
     /**
@@ -70,7 +81,9 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper,Category> im
      * 根据id删除分类
      * @param id
      */
+    @Transactional(rollbackFor = Exception.class)
     public void deleteById(Long id) {
+
         //查询当前分类是否关联了菜品，如果关联了就抛出业务异常
         Long count = dishMapper.selectCount(new LambdaQueryWrapper<Dish>()
                 .eq(Dish::getCategoryId,id));
@@ -95,7 +108,9 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper,Category> im
      * 修改分类
      * @param categoryDTO
      */
+    @Transactional(rollbackFor = Exception.class)
     public void update(CategoryDTO categoryDTO) {
+
         Category category = ProductMapper.INSTANCE.categoryDto2Po(categoryDTO);
 
         categoryMapper.updateById(category);
@@ -106,6 +121,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper,Category> im
      * @param status
      * @param id
      */
+    @Transactional(rollbackFor = Exception.class)
     public void startOrStop(Integer status, Long id) {
         Category category = Category.builder()
                 .id(id)

@@ -1,0 +1,18 @@
+server:
+  port: 8205
+
+spring:
+  application:
+    name: sky-websocket-service
+  profiles:
+    active: dev
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8848
+      config:
+        server-addr: 127.0.0.1:8848
+        file-extension: yaml
+        shared-configs:
+          - data-id: common-rabbitmq.yaml
+          - data-id: common-redis.yaml

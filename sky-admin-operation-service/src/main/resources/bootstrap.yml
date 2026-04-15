@@ -1,5 +1,5 @@
 server:
-  port: 8090
+  port: 8200
 
 spring:
   application:
@@ -15,5 +15,10 @@ spring:
           - data-id: common-datasource.yaml
           - data-id: common-dubbo.yaml
           - data-id: common-log.yaml
+          - data-id: common-sentinel.yaml
       discovery:
         server-addr: 127.0.0.1:8848
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB

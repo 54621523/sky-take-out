@@ -27,6 +27,7 @@ public class AddressBookServiceImpl implements AddressBookService,AddressBookDub
 
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void add(AddressBookDTO addressBookDTO) {
         AddressBook addressBook = UserMapStruct.INSTANCE.addressBookDto2Po(addressBookDTO);
         addressBook.setUserId(BaseContext.getCurrentId());
@@ -42,7 +43,7 @@ public class AddressBookServiceImpl implements AddressBookService,AddressBookDub
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void setDefault(AddressBookDTO addressBookDTO) {
         //先删除所有的默认地址,然后设置新的默认地址
         addressBookMapper.deleteDefault(BaseContext.getCurrentId());
@@ -51,6 +52,7 @@ public class AddressBookServiceImpl implements AddressBookService,AddressBookDub
 
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void update(AddressBookDTO addressBookDTO) {
         addressBookDTO.setUserId(BaseContext.getCurrentId());
         AddressBook addressBook = UserMapStruct.INSTANCE.addressBookDto2Po(addressBookDTO) ;
@@ -72,6 +74,7 @@ public class AddressBookServiceImpl implements AddressBookService,AddressBookDub
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void deleteById(Long id) {
         addressBookMapper.deleteById(id);
     }

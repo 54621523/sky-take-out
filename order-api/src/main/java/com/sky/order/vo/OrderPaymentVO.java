@@ -7,6 +7,10 @@ import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 
+
+/**
+ * 订单支付信息
+ */
 @Data
 @Builder
 @NoArgsConstructor

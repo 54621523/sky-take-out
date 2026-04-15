@@ -11,6 +11,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Component
@@ -51,7 +52,11 @@ public class MinioUtil {
                 extension = originalFilename.substring(originalFilename.lastIndexOf("."));
             }
 
-            String fileName = UUID.randomUUID().toString().replace("-", "") + extension;
+            LocalDate now = LocalDate.now();
+            String fileName = String.format("images/%d/%02d/%02d/%s%s",
+                    now.getYear(), now.getMonthValue(), now.getDayOfMonth(),
+                    UUID.randomUUID().toString().replace("-", ""), extension);
+
 
             minioClient.putObject(
                     PutObjectArgs.builder()

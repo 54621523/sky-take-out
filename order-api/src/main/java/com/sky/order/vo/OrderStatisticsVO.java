@@ -4,6 +4,9 @@ import lombok.Data;
 
 import java.io.Serializable;
 
+/**
+ * 订单统计信息
+ */
 @Data
 public class OrderStatisticsVO implements Serializable {
     //待接单数量

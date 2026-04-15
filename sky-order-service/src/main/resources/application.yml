@@ -4,3 +4,5 @@ spring:
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher
+db:
+  database: sky_order

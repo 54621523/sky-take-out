@@ -5,6 +5,7 @@ import com.github.pagehelper.Page;
 import com.sky.product.domain.po.Dish;
 import com.sky.product.dto.DishPageQueryDTO;
 import com.sky.product.vo.DishOverViewVO;
+import com.sky.product.vo.DishVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
 
@@ -25,7 +26,7 @@ public interface DishMapper extends BaseMapper<Dish> {
      * @param dishPageQueryDTO
      * @return
      */
-    Page<Dish> pageQuery(DishPageQueryDTO dishPageQueryDTO);
+    Page<DishVO> pageQuery(DishPageQueryDTO dishPageQueryDTO);
 
     DishOverViewVO getOverViewDishes();
 

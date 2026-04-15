@@ -2,12 +2,12 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
 <mapper namespace="com.sky.admin.operation.mapper.EmployeeMapper">
-    <insert id="insert" parameterType="Employee">
+    <insert id="insert" parameterType="com.sky.admin.operation.domain.po.Employee">
         insert into employee (username,password,name,phone,sex,id_number,status,create_time,update_time,create_user,update_user)
         values (#{username},#{password},#{name},#{phone},#{sex},#{idNumber},#{status},#{createTime},#{updateTime},#{createUser},#{updateUser})
     </insert>
 
-    <update id="update" parameterType="Employee">
+    <update id="update" parameterType="com.sky.admin.operation.domain.po.Employee">
         update employee
         <set>
             <if test="status != null">status = #{status},</if>
@@ -23,7 +23,7 @@
         where id = #{id}
     </update>
 
-    <select id="pageQuery" resultType="Employee">
+    <select id="pageQuery" resultType="com.sky.admin.operation.domain.po.Employee">
         select * from employee
         <where>
             <if test="name != null and name != ''">

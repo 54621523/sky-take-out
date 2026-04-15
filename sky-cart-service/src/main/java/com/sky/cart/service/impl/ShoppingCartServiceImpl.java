@@ -18,6 +18,7 @@ import org.apache.dubbo.config.annotation.DubboReference;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -39,6 +40,7 @@ public class ShoppingCartServiceImpl extends ServiceImpl<ShoppingCartMapper,Shop
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void save(ShoppingCartDTO shoppingCartDTO) {
         ShoppingCart shoppingCart = CartMapStruct.INSTANCE.shoppingCartDto2Po(shoppingCartDTO);
         Long userId = BaseContext.getCurrentId();
@@ -72,6 +74,7 @@ public class ShoppingCartServiceImpl extends ServiceImpl<ShoppingCartMapper,Shop
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void delete(ShoppingCartDTO shoppingCartDTO) {
         Long userId = BaseContext.getCurrentId();
         ShoppingCart shoppingCart = CartMapStruct.INSTANCE.shoppingCartDto2Po(shoppingCartDTO);
@@ -90,8 +93,8 @@ public class ShoppingCartServiceImpl extends ServiceImpl<ShoppingCartMapper,Shop
 
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void clean() {
-
         Long userId = BaseContext.getCurrentId();
         shoppingCartMapper.delete(new LambdaQueryWrapper<ShoppingCart>()
                 .eq(ShoppingCart::getUserId,userId));

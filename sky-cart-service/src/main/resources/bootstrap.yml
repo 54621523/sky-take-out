@@ -1,5 +1,5 @@
 server:
-  port: 8130
+  port: 8201
 
 spring:
   application:
@@ -15,5 +15,7 @@ spring:
           - data-id: common-datasource.yaml
           - data-id: common-dubbo.yaml
           - data-id: common-log.yaml
+          - data-id: common-sentinel.yaml
+          - data-id: common-seata.yaml
       discovery:
         server-addr: 127.0.0.1:8848

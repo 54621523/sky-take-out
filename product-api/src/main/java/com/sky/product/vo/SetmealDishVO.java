@@ -1,5 +1,18 @@
 package com.sky.product.vo;
 
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+/**
+ * 套餐菜品视图对象
+ */
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class SetmealDishVO {
 
     //份数

@@ -5,6 +5,7 @@ import com.github.pagehelper.Page;
 import com.sky.product.domain.po.Setmeal;
 import com.sky.product.dto.SetmealPageQueryDTO;
 import com.sky.product.vo.SetmealOverViewVO;
+import com.sky.product.vo.SetmealVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
 
@@ -19,7 +20,7 @@ public interface SetmealMapper extends BaseMapper<Setmeal> {
     @Select("select count(id) from setmeal where category_id = #{categoryId}")
     Integer countByCategoryId(Long id);
 
-    Page<Setmeal> pageQuery(SetmealPageQueryDTO setmealPageQueryDTO);
+    Page<SetmealVO> pageQuery(SetmealPageQueryDTO setmealPageQueryDTO);
 
     SetmealOverViewVO getOverViewSetmeals();
 }

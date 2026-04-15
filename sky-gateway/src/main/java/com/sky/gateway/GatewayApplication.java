@@ -11,7 +11,8 @@ import org.springframework.context.annotation.FilterType;
 @ComponentScan(basePackages = "com.sky", excludeFilters = {
         @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com\\.sky\\.config\\..*"),
         @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com\\.sky\\.interceptor\\..*"),
-        @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com\\.sky\\.filter\\..*")
+        @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com\\.sky\\.filter\\..*"),
+        @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com\\.sky\\.handler\\..*")
 })
 public class GatewayApplication {
     public static void main(String[] args) {

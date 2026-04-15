@@ -54,4 +54,8 @@ public interface OrderService extends IService<Orders> {
     OrderOverViewVO getOverViewOrders();
 
     SalesTop10ReportVO top10(LocalDate begin, LocalDate end);
+
+    OrderReportVO ordersStatistics(LocalDate begin, LocalDate end);
+
+    TurnoverReportVO turnoverStatistics(LocalDate begin, LocalDate end);
 }

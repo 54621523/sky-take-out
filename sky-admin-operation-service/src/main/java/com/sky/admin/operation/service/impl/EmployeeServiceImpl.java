@@ -1,6 +1,7 @@
 package com.sky.admin.operation.service.impl;
 
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
@@ -25,6 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.DigestUtils;
 
 import java.util.HashMap;
@@ -94,6 +96,7 @@ public class EmployeeServiceImpl extends ServiceImpl<EmployeeMapper,Employee> im
      * @param employeeDTO
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void saveEmployee(EmployeeDTO employeeDTO) {
         Employee employee = new Employee();
         //拷贝属性,使用工具类拷贝属性
@@ -127,6 +130,7 @@ public class EmployeeServiceImpl extends ServiceImpl<EmployeeMapper,Employee> im
      * @param id
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void startOrStop(Integer status, Long id) {
         Employee employee = Employee.builder()
                 .status(status)
@@ -152,6 +156,7 @@ public class EmployeeServiceImpl extends ServiceImpl<EmployeeMapper,Employee> im
      * @param employeeDTO
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void update(EmployeeDTO employeeDTO) {
         Employee employee = new Employee();
         BeanUtils.copyProperties(employeeDTO, employee);
@@ -163,6 +168,7 @@ public class EmployeeServiceImpl extends ServiceImpl<EmployeeMapper,Employee> im
      * @param passwordEditDTO
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void editPassword(PasswordEditDTO passwordEditDTO) {
         String oldPassword = passwordEditDTO.getOldPassword();
         oldPassword = DigestUtils.md5DigestAsHex(oldPassword.getBytes());

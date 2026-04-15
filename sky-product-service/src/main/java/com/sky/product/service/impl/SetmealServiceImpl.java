@@ -7,6 +7,7 @@ import com.github.pagehelper.PageHelper;
 import com.sky.constant.MessageConstant;
 import com.sky.exception.DeletionNotAllowedException;
 import com.sky.exception.SetmealEnableFailedException;
+import com.sky.product.domain.po.Dish;
 import com.sky.product.domain.po.Setmeal;
 import com.sky.product.domain.po.SetmealDish;
 import com.sky.product.dto.SetmealDTO;
@@ -24,9 +25,13 @@ import com.sky.result.PageResult;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 @DubboService(interfaceClass = SetmealDubboService.class)
 @Slf4j
@@ -45,7 +50,7 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper,Setmeal> imple
      * @param setmealDTO
      */
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void save(SetmealDTO setmealDTO) {
         Setmeal setmeal = ProductMapper.INSTANCE.setmealDto2Po(setmealDTO);
         setmealMapper.insert(setmeal);
@@ -70,13 +75,12 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper,Setmeal> imple
     @Override
     public PageResult pageQuery(SetmealPageQueryDTO setmealPageQueryDTO) {
         PageHelper.startPage(setmealPageQueryDTO.getPage(),setmealPageQueryDTO.getPageSize());
-        Page<Setmeal> page = setmealMapper.pageQuery(setmealPageQueryDTO);
-        List<SetmealVO> records = ProductMapper.INSTANCE.setmealPo2Vo(page.getResult());
-        return new PageResult(page.getTotal(),records);
+        Page<SetmealVO> page = setmealMapper.pageQuery(setmealPageQueryDTO);
+        return new PageResult(page.getTotal(),new ArrayList<>(page.getResult()));
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void update(SetmealDTO setmealDTO) {
         Setmeal setmeal = ProductMapper.INSTANCE.setmealDto2Po(setmealDTO);
 
@@ -92,17 +96,24 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper,Setmeal> imple
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void startOrStop(Integer status, Long id) {
         if(status == 1){
             List<SetmealDish> setmealDishes = setmealDishMapper.selectList(new LambdaQueryWrapper<SetmealDish>()
                     .eq(SetmealDish::getSetmealId,id));
 
             if(setmealDishes != null && !setmealDishes.isEmpty()){
-                for(SetmealDish setmealDish:setmealDishes){
-                    if(dishMapper.selectById(setmealDish.getDishId()).getStatus() == 0 ){
-                        throw new SetmealEnableFailedException(MessageConstant.SETMEAL_ENABLE_FAILED);
-                    }
+                List<Long> dishIds = setmealDishes.stream()
+                        .map(SetmealDish::getDishId)
+                        .toList();
+
+                long disabledCount = dishMapper.selectCount(
+                        new LambdaQueryWrapper<Dish>()
+                                .in(Dish::getId, dishIds)
+                                .eq(Dish::getStatus, 0));
+
+                if(disabledCount > 0){
+                    throw new SetmealEnableFailedException(MessageConstant.SETMEAL_ENABLE_FAILED);
                 }
             }
         }
@@ -114,7 +125,7 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper,Setmeal> imple
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void delete(List<Long> ids) {
 
         List<Setmeal> setmeals = setmealMapper.selectByIds(ids);
@@ -128,6 +139,7 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper,Setmeal> imple
             setmealMapper.deleteByIds(ids);
     }
 
+    @Cacheable(cacheNames = "setmealCache", key = "#categoryId")
     @Override
     public List<SetmealVO> list(Long categoryId) {
         return ProductMapper.INSTANCE.setmealPo2Vo(setmealMapper.selectList(new LambdaQueryWrapper<Setmeal>()
@@ -136,9 +148,52 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper,Setmeal> imple
 
     @Override
     public List<SetmealDishVO> getSetmealDishById(Long id){
-        return ProductMapper.INSTANCE.setmealDishPo2Vo(setmealDishMapper.selectList(new LambdaQueryWrapper<SetmealDish>()
-                .eq(SetmealDish::getSetmealId,id))
-        );
+        List<SetmealDish> setmealDishes = setmealDishMapper.selectList(new LambdaQueryWrapper<SetmealDish>()
+                .eq(SetmealDish::getSetmealId,id));
+
+        if(setmealDishes == null || setmealDishes.isEmpty()){
+            return new java.util.ArrayList<>();
+        }
+
+        List<Long> dishIds = setmealDishes.stream()
+                .map(SetmealDish::getDishId)
+                .filter(Objects::nonNull)
+                .toList();
+
+        Map<Long, Dish> dishMap = new java.util.HashMap<>();
+        if(!dishIds.isEmpty()){
+            List<Dish> dishes = dishMapper.selectList(
+                    new LambdaQueryWrapper<Dish>()
+                            .in(Dish::getId, dishIds));
+            dishMap = dishes.stream()
+                    .collect(java.util.stream.Collectors.toMap(
+                            Dish::getId,
+                            dish -> dish));
+        }
+
+        Map<Long,Dish> finalDishMap = dishMap;
+
+        return setmealDishes.stream()
+                .map(setmealDish -> {
+                    SetmealDishVO vo = ProductMapper.INSTANCE.setmealDishPo2Vo(setmealDish);
+
+                    if (setmealDish.getDishId() != null) {
+                        Dish dish = finalDishMap.get(setmealDish.getDishId());
+                        if (dish != null) {
+                            vo.setDescription(dish.getDescription() != null ? dish.getDescription() : "");
+                            vo.setImage(dish.getImage() != null ? dish.getImage() : "");
+                        } else {
+                            vo.setDescription("");
+                            vo.setImage("");
+                        }
+                    } else {
+                        vo.setDescription("");
+                        vo.setImage("");
+                    }
+
+                    return vo;
+                })
+                .toList();
     }
 
     public SetmealOverViewVO getOverViewSetmeals(){

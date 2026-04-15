@@ -3,7 +3,7 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
 <mapper namespace="com.sky.product.mapper.DishMapper">
 
-    <select id="pageQuery" resultType="com.sky.product.domain.po.Dish">
+    <select id="pageQuery" resultType="com.sky.product.vo.DishVO">
         select d.*,c.name As categoryName from dish d left join category c on d.category_id = c.id
         <where>
             <if test="name != null and name != ''">
