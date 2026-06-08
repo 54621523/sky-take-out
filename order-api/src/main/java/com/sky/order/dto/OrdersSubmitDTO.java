@@ -28,4 +28,8 @@ public class OrdersSubmitDTO implements Serializable {
     private Integer packAmount;
     //总金额
     private BigDecimal amount;
+
+
+    //优惠券id（用户优惠券id）
+    private Long userCouponId;
 }

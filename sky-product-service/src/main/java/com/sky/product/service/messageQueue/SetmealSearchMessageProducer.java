@@ -1,4 +1,4 @@
-package com.sky.product.service;
+package com.sky.product.service.messageQueue;
 
 import com.sky.product.constant.ProductRabbitMQConstant;
 import com.sky.product.dto.SetmealSearchMessage;

@@ -1,0 +1,22 @@
+server:
+  port: 8206
+
+spring:
+  application:
+    name: sky-coupon-service
+  profiles:
+    active: dev
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8848
+      config:
+        server-addr: 127.0.0.1:8848
+        file-extension: yaml
+        shared-configs:
+          - data-id: common-datasource.yaml
+          - data-id: common-dubbo.yaml
+          - data-id: common-log.yaml
+          - data-id: common-sentinel.yaml
+          - data-id: common-seata.yaml
+          - data-id: common-redis.yaml

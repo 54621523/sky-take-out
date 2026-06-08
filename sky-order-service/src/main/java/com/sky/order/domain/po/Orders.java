@@ -111,4 +111,12 @@ public class Orders implements Serializable {
 
     //餐具数量状态  1按餐量提供  0选择具体数量
     private Integer tablewareStatus;
+
+
+    //优惠券抵扣金额
+    private BigDecimal couponAmount;
+
+    //用户优惠券id
+    private Long userCouponId;
+
 }

@@ -1,6 +1,6 @@
 package com.sky.product.controller;
 
-import com.sky.product.service.DishSyncService;
+import com.sky.product.service.searchengine.DishSyncService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;

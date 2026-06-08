@@ -13,6 +13,7 @@ import java.io.Serializable;
 @AllArgsConstructor
 public class ShoppingCartDTO implements Serializable {
 
+
     private Long dishId;
     private Long setmealId;
     private String dishFlavor;

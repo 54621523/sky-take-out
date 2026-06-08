@@ -32,6 +32,26 @@ spring:
           predicates:
             - Path=/admin/order/**
 
+        - id: admin-coupon
+          uri: lb://sky-coupon-service
+          predicates:
+            - Path=/admin/coupon/**
+
+        - id: user-coupon
+          uri: lb://sky-coupon-service
+          predicates:
+            - Path=/user/coupon/**
+
+        - id: admin-order
+          uri: lb://sky-order-service
+          predicates:
+            - Path=/admin/order/**
+
+        - id: user-ai-chat
+          uri: lb://agent
+          predicates:
+            - Path=/user/ai/**
+
         - id: admin-report
           uri: lb://sky-admin-order-service
           predicates:

@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,9 +23,10 @@ public class DishSearchRepository {
 
     public void initIndex() {
         meilisearchTemplate.createIndex(INDEX_UID, PRIMARY_KEY);
-        String[] filterableAttributes = {"categoryId", "categoryName", "status"};
+        String[] searchableAttributes = {"name", "description", "categoryName", "flavors.value", "flavors.name"};
+        String[] filterableAttributes = {"categoryId", "categoryName", "status", "price"};
         String[] sortableAttributes = {"price", "updateTime"};
-        meilisearchTemplate.updateSettings(INDEX_UID, filterableAttributes, sortableAttributes);
+        meilisearchTemplate.updateSettings(INDEX_UID, searchableAttributes, filterableAttributes, sortableAttributes);
     }
 
     public void addDish(DishDocument dishDocument) {
@@ -61,5 +63,26 @@ public class DishSearchRepository {
         String[] filterArray = filters.toArray(new String[0]);
 
         return meilisearchTemplate.search(INDEX_UID, name, page, pageSize, filterArray);
+    }
+
+    public SearchResultPaginated smartSearch(String keyword, int page, int pageSize, Long categoryId, Integer status,
+                                             BigDecimal minPrice, BigDecimal maxPrice) {
+        List<String> filters = new ArrayList<>();
+
+        if (categoryId != null && categoryId > 0) {
+            filters.add("categoryId=" + categoryId);
+        }
+        if (status != null) {
+            filters.add("status=" + status);
+        }
+        if (minPrice != null && minPrice.compareTo(BigDecimal.ZERO) > 0) {
+            filters.add("price >= " + minPrice);
+        }
+        if (maxPrice != null && maxPrice.compareTo(BigDecimal.ZERO) > 0) {
+            filters.add("price <= " + maxPrice);
+        }
+
+        String[] filterArray = filters.toArray(new String[0]);
+        return meilisearchTemplate.search(INDEX_UID, keyword, page, pageSize, filterArray);
     }
 }

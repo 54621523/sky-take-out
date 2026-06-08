@@ -7,6 +7,7 @@ import com.sky.product.vo.SetmealOverViewVO;
 import com.sky.product.vo.SetmealVO;
 import com.sky.result.PageResult;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public interface SetmealDubboService {
@@ -63,6 +64,13 @@ public interface SetmealDubboService {
      * @return
      */
     List<SetmealDishVO> getSetmealDishById(Long id);
+
+    /**
+     * 关键词搜索套餐（含包含菜品数据），支持分类和价格过滤
+     * Meilisearch全文检索：匹配套餐名、描述、包含菜品名
+     */
+    PageResult searchByKeyword(String keyword, Long categoryId, BigDecimal minPrice, BigDecimal maxPrice, int page, int pageSize);
+
 
     SetmealOverViewVO getOverViewSetmeals();
 }

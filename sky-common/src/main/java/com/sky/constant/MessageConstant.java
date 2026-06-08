@@ -24,5 +24,13 @@ public class MessageConstant {
     public static final String ORDER_STATUS_ERROR = "订单状态错误";
     public static final String ORDER_NOT_FOUND = "订单不存在";
 
+    public static final String COUPON_NOT_FOUND = "优惠券不存在";
+    public static final String COUPON_EXPIRED = "优惠券已过期";
+    public static final String COUPON_STOCK_EMPTY = "优惠券已被领完";
+    public static final String COUPON_CLAIM_LIMIT = "已达到该优惠券领取上限";
+    public static final String COUPON_NOT_AVAILABLE = "优惠券不可用";
+    public static final String COUPON_MIN_AMOUNT_NOT_MET = "订单金额未达到优惠券最低消费";
+
+
     public static final String ALREADY_EXISTS = "已存在";
 }

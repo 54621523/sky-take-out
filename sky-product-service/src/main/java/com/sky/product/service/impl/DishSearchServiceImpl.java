@@ -122,4 +122,22 @@ public class DishSearchServiceImpl implements DishSearchService {
             return dishVO;
         }).toList();
     }
+
+    @Override
+    public PageResult smartSearch(String keyword, int page, int pageSize, Long categoryId, Integer status,
+                                  BigDecimal minPrice, BigDecimal maxPrice) {
+        try {
+            SearchResultPaginated searchResult = dishSearchRepository.smartSearch(
+                    keyword, page, pageSize, categoryId, status, minPrice, maxPrice
+            );
+
+            log.info("Meilisearch智能搜索成功，关键词: {}，结果数: {}", keyword, searchResult.getHits().size());
+            List<DishVO> dishList = convertSearchResultToDishVO(searchResult, true);
+            return new PageResult(searchResult.getTotalHits(), dishList);
+
+        } catch (Exception e) {
+            log.warn("Meilisearch智能搜索失败，降级返回空结果: {}", e.getMessage());
+            return new PageResult(0, List.of());
+        }
+    }
 }

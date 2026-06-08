@@ -3,7 +3,7 @@ package com.sky.product.listener;
 import com.rabbitmq.client.Channel;
 import com.sky.product.constant.ProductRabbitMQConstant;
 import com.sky.product.dto.SetmealSearchMessage;
-import com.sky.product.service.SetmealSyncService;
+import com.sky.product.service.searchengine.SetmealSyncService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sky.coupon.mapper.UserCouponMapper">
+
+    <select id="selectMyCoupons" resultType="com.sky.coupon.vo.UserCouponVO">
+        SELECT uc.id,
+               uc.coupon_id,
+               uc.status,
+               uc.claim_time,
+               uc.use_time,
+               ct.name AS couponName,
+               ct.type AS couponType,
+               ct.discount_amount,
+               ct.discount_rate,
+               ct.min_order_amount,
+               ct.start_time,
+               ct.end_time
+        FROM user_coupon uc
+                 INNER JOIN coupon_template ct ON uc.coupon_id = ct.id
+        WHERE uc.user_id = #{userId}
+        ORDER BY uc.claim_time DESC
+    </select>
+
+</mapper>

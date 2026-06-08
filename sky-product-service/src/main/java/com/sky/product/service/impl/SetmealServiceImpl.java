@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import com.sky.constant.MessageConstant;
+import com.sky.constant.StatusConstant;
 import com.sky.exception.DeletionNotAllowedException;
 import com.sky.exception.SetmealEnableFailedException;
 import com.sky.product.domain.po.Dish;
@@ -17,10 +18,10 @@ import com.sky.product.mapper.DishMapper;
 import com.sky.product.mapper.SetmealDishMapper;
 import com.sky.product.mapper.SetmealMapper;
 import com.sky.product.mapper.mapstruct.ProductMapper;
-import com.sky.product.service.SetmealSearchMessageProducer;
+import com.sky.product.service.messageQueue.SetmealSearchMessageProducer;
 import com.sky.product.service.SetmealSearchService;
 import com.sky.product.service.SetmealService;
-import com.sky.product.service.SetmealSyncService;
+import com.sky.product.service.searchengine.SetmealSyncService;
 import com.sky.product.vo.SetmealDishVO;
 import com.sky.product.vo.SetmealOverViewVO;
 import com.sky.product.vo.SetmealVO;
@@ -31,6 +32,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.*;
 
 @DubboService(interfaceClass = SetmealDubboService.class)
@@ -228,6 +230,26 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper,Setmeal> imple
                     return vo;
                 })
                 .toList();
+    }
+
+    @Override
+    public PageResult searchByKeyword(String keyword, Long categoryId, BigDecimal minPrice, BigDecimal maxPrice, int page, int pageSize) {
+        try {
+            return setmealSearchService.smartSearch(
+                    keyword, page, pageSize, categoryId, StatusConstant.ENABLE, minPrice, maxPrice
+            );
+        } catch (Exception e) {
+            log.warn("Meilisearch关键词搜索套餐失败，降级到MySQL: {}", e.getMessage());
+        }
+        SetmealPageQueryDTO fallbackDTO = new SetmealPageQueryDTO();
+        fallbackDTO.setName(keyword);
+        fallbackDTO.setCategoryId(categoryId != null ? categoryId.intValue() : null);
+        fallbackDTO.setStatus(StatusConstant.ENABLE);
+        fallbackDTO.setPage(page);
+        fallbackDTO.setPageSize(pageSize);
+        PageHelper.startPage(page, pageSize);
+        Page<SetmealVO> mysqlPage = setmealMapper.pageQuery(fallbackDTO);
+        return new PageResult(mysqlPage.getTotal(), new ArrayList<>(mysqlPage.getResult()));
     }
 
     public SetmealOverViewVO getOverViewSetmeals(){

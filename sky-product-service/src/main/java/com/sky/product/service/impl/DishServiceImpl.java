@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
-import com.meilisearch.sdk.model.SearchResultPaginated;
 import com.sky.constant.MessageConstant;
 import com.sky.constant.StatusConstant;
 import com.sky.exception.DeletionNotAllowedException;
@@ -13,10 +12,8 @@ import com.sky.product.dto.DishDTO;
 import com.sky.product.dto.DishPageQueryDTO;
 import com.sky.product.dubboService.DishDubboService;
 import com.sky.product.mapper.CategoryMapper;
-import com.sky.product.respository.DishSearchRepository;
-import com.sky.product.service.DishSearchMessageProducer;
+import com.sky.product.service.messageQueue.DishSearchMessageProducer;
 import com.sky.product.service.DishSearchService;
-import com.sky.product.service.DishSyncService;
 import com.sky.product.vo.DishOverViewVO;
 import com.sky.product.vo.DishVO;
 import com.sky.result.PageResult;
@@ -31,6 +28,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.transaction.annotation.Transactional;
 import com.sky.product.service.DishService;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -229,6 +227,26 @@ public class DishServiceImpl extends ServiceImpl<DishMapper,Dish> implements Dis
 
             return dishVO;
         }).toList();
+    }
+
+    @Override
+    public PageResult searchByKeyword(String keyword, Long categoryId, BigDecimal minPrice, BigDecimal maxPrice, int page, int pageSize) {
+        try {
+            return dishSearchService.smartSearch(
+                    keyword, page, pageSize, categoryId, StatusConstant.ENABLE, minPrice, maxPrice
+            );
+        } catch (Exception e) {
+            log.warn("Meilisearch关键词搜索失败，降级到MySQL: {}", e.getMessage());
+        }
+        DishPageQueryDTO fallbackDTO = new DishPageQueryDTO();
+        fallbackDTO.setName(keyword);
+        fallbackDTO.setCategoryId(categoryId != null ? categoryId.intValue() : null);
+        fallbackDTO.setStatus(StatusConstant.ENABLE);
+        fallbackDTO.setPage(page);
+        fallbackDTO.setPageSize(pageSize);
+        PageHelper.startPage(page, pageSize);
+        Page<DishVO> mysqlPage = dishMapper.pageQuery(fallbackDTO);
+        return new PageResult(mysqlPage.getTotal(), new ArrayList<>(mysqlPage.getResult()));
     }
 
     public DishOverViewVO getOverViewDishes(){

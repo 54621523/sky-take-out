@@ -1,4 +1,4 @@
-package com.sky.product.service;
+package com.sky.product.service.searchengine;
 
 public interface SetmealSyncService {
 

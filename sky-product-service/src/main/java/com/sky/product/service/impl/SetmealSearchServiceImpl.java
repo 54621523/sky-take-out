@@ -42,6 +42,24 @@ public class SetmealSearchServiceImpl implements SetmealSearchService {
     }
 
     @Override
+    public PageResult smartSearch(String keyword, int page, int pageSize, Long categoryId, Integer status,
+                                  BigDecimal minPrice, BigDecimal maxPrice) {
+        try {
+            SearchResultPaginated searchResult = setmealSearchRepository.smartSearch(
+                    keyword, page, pageSize, categoryId, status, minPrice, maxPrice
+            );
+
+            log.info("Meilisearch智能搜索套餐成功，关键词: {}，结果数: {}", keyword, searchResult.getHits().size());
+            List<SetmealVO> setmealList = convertSearchResultToSetmealVO(searchResult, true);
+            return new PageResult(searchResult.getTotalHits(), setmealList);
+
+        } catch (Exception e) {
+            log.warn("Meilisearch智能搜索套餐失败，降级返回空结果: {}", e.getMessage());
+            return new PageResult(0, List.of());
+        }
+    }
+
+    @Override
     public void deleteSetmealIndex(Long setmealId) {
         try {
             setmealSearchRepository.deleteSetmeal(setmealId);

@@ -6,6 +6,7 @@ import com.sky.product.vo.DishOverViewVO;
 import com.sky.product.vo.DishVO;
 import com.sky.result.PageResult;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public interface DishDubboService {
@@ -56,5 +57,16 @@ public interface DishDubboService {
      */
     List<DishVO> listWithFlavors(Long categoryId);
 
+
+    /**
+     * 关键词搜索菜品（含口味数据），支持分类和价格过滤
+     * Meilisearch全文检索：匹配菜名、描述、口味名称、口味值
+     */
+    PageResult searchByKeyword(String keyword, Long categoryId, BigDecimal minPrice, BigDecimal maxPrice, int page, int pageSize);
+
+
+
     DishOverViewVO getOverViewDishes();
+
+
 }

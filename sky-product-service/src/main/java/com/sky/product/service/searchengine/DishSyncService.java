@@ -1,6 +1,4 @@
-package com.sky.product.service;
-
-import java.util.List;
+package com.sky.product.service.searchengine;
 
 public interface DishSyncService {
 

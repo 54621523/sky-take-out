@@ -1,0 +1,8 @@
+spring:
+  main:
+    allow-circular-references: true
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+db:
+  database: sky_coupon

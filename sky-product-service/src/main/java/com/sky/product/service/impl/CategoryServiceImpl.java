@@ -24,6 +24,7 @@ import com.sky.product.vo.CategoryVO;
 import com.sky.result.PageResult;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboService;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DuplicateKeyException;
@@ -49,6 +50,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper,Category> im
 
     /**
      * 新增分类
+     *
      * @param categoryDTO
      */
     @Transactional(rollbackFor = Exception.class)
@@ -59,7 +61,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper,Category> im
         category.setStatus(StatusConstant.DISABLE);
         try {
             categoryMapper.insert(category);
-        }catch ( DuplicateKeyException e){
+        } catch (DuplicateKeyException e) {
             log.warn("分类名称已存在：{}", categoryDTO.getName());
             throw new BaseException(MessageConstant.ALREADY_EXISTS);
         }
@@ -67,11 +69,12 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper,Category> im
 
     /**
      * 分页查询
+     *
      * @param categoryPageQueryDTO
      * @return
      */
     public PageResult pageQuery(CategoryPageQueryDTO categoryPageQueryDTO) {
-        PageHelper.startPage(categoryPageQueryDTO.getPage(),categoryPageQueryDTO.getPageSize());
+        PageHelper.startPage(categoryPageQueryDTO.getPage(), categoryPageQueryDTO.getPageSize());
         //下一条sql进行分页，自动加入limit关键字分页
         Page<Category> page = categoryMapper.pageQuery(categoryPageQueryDTO);
         List<CategoryVO> records = ProductMapper.INSTANCE.categoryPo2Vo(page.getResult());
@@ -80,6 +83,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper,Category> im
 
     /**
      * 根据id删除分类
+     *
      * @param id
      */
     @Transactional(rollbackFor = Exception.class)
@@ -87,16 +91,16 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper,Category> im
 
         //查询当前分类是否关联了菜品，如果关联了就抛出业务异常
         Long count = dishMapper.selectCount(new LambdaQueryWrapper<Dish>()
-                .eq(Dish::getCategoryId,id));
-        if(count > 0){
+                .eq(Dish::getCategoryId, id));
+        if (count > 0) {
             //当前分类下有菜品，不能删除
             throw new DeletionNotAllowedException(MessageConstant.CATEGORY_BE_RELATED_BY_DISH);
         }
 
         //查询当前分类是否关联了套餐，如果关联了就抛出业务异常
         count = setmealMapper.selectCount(new LambdaQueryWrapper<Setmeal>()
-                .eq(Setmeal::getCategoryId,id));
-        if(count > 0){
+                .eq(Setmeal::getCategoryId, id));
+        if (count > 0) {
             //当前分类下有菜品，不能删除
             throw new DeletionNotAllowedException(MessageConstant.CATEGORY_BE_RELATED_BY_SETMEAL);
         }
@@ -107,6 +111,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper,Category> im
 
     /**
      * 修改分类
+     *
      * @param categoryDTO
      */
     @Transactional(rollbackFor = Exception.class)
@@ -119,6 +124,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper,Category> im
 
     /**
      * 启用、禁用分类
+     *
      * @param status
      * @param id
      */
@@ -139,15 +145,27 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper,Category> im
      * @param type
      * @return
      */
-    @Cacheable(cacheNames = "categoryCache", key = "#type")
     public List<CategoryVO> list(Integer type) {
-        if(type == null){
+        if (type == null) {
             List<Category> categories = categoryMapper.selectList(new LambdaQueryWrapper<Category>()
-                    .eq(Category::getStatus,StatusConstant.ENABLE));
+                    .eq(Category::getStatus, StatusConstant.ENABLE));
             return ProductMapper.INSTANCE.categoryPo2Vo(categories);
         }
         List<Category> categories = categoryMapper.selectList(new LambdaQueryWrapper<Category>()
-                .eq(Category::getType,type));
+                .eq(Category::getType, type));
         return ProductMapper.INSTANCE.categoryPo2Vo(categories);
+    }
+
+    @Override
+    public List<CategoryVO> listAllEnabled() {
+        List<Category> categories = categoryMapper.selectList(
+                new LambdaQueryWrapper<Category>()
+                        .eq(Category::getStatus, StatusConstant.ENABLE)
+                        .orderByAsc(Category::getSort));
+        return categories.stream().map(c -> {
+            CategoryVO vo = new CategoryVO();
+            BeanUtils.copyProperties(c, vo);
+            return vo;
+        }).toList();
     }
 }

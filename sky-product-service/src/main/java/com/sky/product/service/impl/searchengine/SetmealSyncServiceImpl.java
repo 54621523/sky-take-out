@@ -1,4 +1,4 @@
-package com.sky.product.service.impl;
+package com.sky.product.service.impl.searchengine;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.sky.product.domain.document.SetmealDocument;
@@ -9,7 +9,7 @@ import com.sky.product.mapper.CategoryMapper;
 import com.sky.product.mapper.SetmealDishMapper;
 import com.sky.product.mapper.SetmealMapper;
 import com.sky.product.respository.SetmealSearchRepository;
-import com.sky.product.service.SetmealSyncService;
+import com.sky.product.service.searchengine.SetmealSyncService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

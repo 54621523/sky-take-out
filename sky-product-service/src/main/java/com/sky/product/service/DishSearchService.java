@@ -4,6 +4,7 @@ import com.meilisearch.sdk.model.SearchResultPaginated;
 import com.sky.product.vo.DishVO;
 import com.sky.result.PageResult;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public interface DishSearchService {
@@ -19,6 +20,10 @@ public interface DishSearchService {
      * @return 菜品VO列表
      */
     PageResult searchAndConvert(String name, int page, int pageSize, Long categoryId, Integer status, boolean includeFlavors);
+
+    PageResult smartSearch(String keyword, int page, int pageSize, Long categoryId, Integer status,
+                           BigDecimal minPrice, BigDecimal maxPrice);
+
 
     /**
      * 删除菜品索引

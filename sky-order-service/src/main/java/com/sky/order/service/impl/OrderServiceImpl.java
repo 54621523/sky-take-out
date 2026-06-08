@@ -11,6 +11,7 @@ import com.sky.cart.dubboService.CartDubboService;
 import com.sky.cart.vo.ShoppingCartVO;
 import com.sky.constant.MessageConstant;
 import com.sky.context.BaseContext;
+import com.sky.coupon.dubboService.CouponDubboService;
 import com.sky.exception.BaseException;
 import com.sky.exception.OrderBusinessException;
 import com.sky.order.domain.po.OrderDetail;
@@ -37,6 +38,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -60,6 +62,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
     private AddressBookDubboService addressBookService;
     @DubboReference
     private CartDubboService shoppingCartService;
+    @DubboReference
+    private CouponDubboService couponDubboService;
     @Autowired
     private WeChatPayUtil weChatPayUtil;
     @Autowired
@@ -85,12 +89,18 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
         if(addressBookVO == null){
             throw new OrderBusinessException(MessageConstant.ADDRESS_BOOK_IS_NULL);
         }
+
+        // 处理优惠券
+        BigDecimal couponAmount = BigDecimal.ZERO;
+        if (ordersSubmitDTO.getUserCouponId() != null) {
+            couponAmount = couponDubboService.useCoupon(
+                    ordersSubmitDTO.getUserCouponId(), UserId, ordersSubmitDTO.getAmount());
+        }
+
         //创建订单
         Orders orders = new Orders();
         BeanUtils.copyProperties(ordersSubmitDTO, orders);
         orders.setUserId(UserId);
-        //实际微信用户名其实根本不存在
-        //orders.setUserName(userMapper.getByUserId(UserId).getName());
         orders.setOrderTime(LocalDateTime.now());
         orders.setPayStatus(Orders.UN_PAID);
         orders.setStatus(Orders.PENDING_PAYMENT);
@@ -98,6 +108,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
         orders.setAddress(addressBookVO.getDetail());
         orders.setConsignee(addressBookVO.getConsignee());
         orders.setNumber(generateOrderNumber());
+        orders.setCouponAmount(couponAmount);
+        orders.setUserCouponId(ordersSubmitDTO.getUserCouponId());
+        orders.setAmount(ordersSubmitDTO.getAmount().subtract(couponAmount));
+
         //订单表插入一条数据
         orderMapper.insert(orders);
         //明细表插入多条数据
@@ -115,7 +129,6 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
                 .build();
         orderMessageProducer.sendCartClearMessage(cartClearMessage);
 
-
         OrderMessageDTO timeoutMessage = OrderMessageDTO.builder()
                 .orderId(orders.getId())
                 .orderNumber(orders.getNumber())
@@ -125,14 +138,15 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
                 .build();
         orderMessageProducer.sendOrderTimeoutMessage(timeoutMessage);
 
-
         return OrderSubmitVO.builder()
                 .id(orders.getId())
                 .orderNumber(orders.getNumber())
                 .orderAmount(orders.getAmount())
                 .orderTime(orders.getOrderTime())
+                .couponAmount(couponAmount)
                 .build();
     }
+
 
     /**
      * 订单支付
@@ -266,13 +280,21 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
+    @GlobalTransactional(rollbackFor = Exception.class)
     public void cancel4User(Long id) {
+        Orders orders = orderMapper.selectById(id);
         orderMapper.update(new LambdaUpdateWrapper<Orders>()
                 .eq(Orders::getId,id)
                 .set(Orders::getStatus,Orders.CANCELLED)
                 .set(Orders::getCancelReason,"用户取消")
                 .set(Orders::getCancelTime,LocalDateTime.now()));
+        if (orders != null && orders.getUserCouponId() != null) {
+            try {
+                couponDubboService.restoreCoupon(orders.getUserCouponId(), orders.getUserId());
+            } catch (Exception e) {
+                log.error("退还优惠券失败, orderId: {}, userCouponId: {}", id, orders.getUserCouponId(), e);
+            }
+        }
     }
 
     @Override
@@ -280,7 +302,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
     public void cancel4Shop(OrdersCancelDTO ordersCancelDTO) {
         Orders orders = orderMapper.selectById(ordersCancelDTO.getId());
         if(orders == null){
-            //TODO 错误信息
+            //TODO 错误信息字段化
             throw new OrderBusinessException("订单不存在");
         }
 
@@ -289,6 +311,13 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
                 .set(Orders::getStatus,Orders.CANCELLED)
                 .set(Orders::getCancelReason,ordersCancelDTO.getCancelReason())
                 .set(Orders::getCancelTime,LocalDateTime.now()));
+        if (orders != null && orders.getUserCouponId() != null) {
+            try {
+                couponDubboService.restoreCoupon(orders.getUserCouponId(), orders.getUserId());
+            } catch (Exception e) {
+                log.error("退还优惠券失败, orderId: {}, userCouponId: {}", ordersCancelDTO.getId(), orders.getUserCouponId(), e);
+            }
+        }
     }
 
     @Override

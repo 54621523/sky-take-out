@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.meilisearch.sdk.Client;
 import com.meilisearch.sdk.Index;
+import com.meilisearch.sdk.SearchRequest;
 import com.meilisearch.sdk.model.SearchResultPaginated;
 import com.meilisearch.sdk.model.Settings;
 import com.meilisearch.sdk.model.TaskInfo;
@@ -35,6 +36,11 @@ public class MeilisearchTemplate {
 
     public void createIndex(String indexUid, String primaryKey) {
         try {
+            Index index = getIndex(indexUid);
+            if(index != null) {
+                log.info("索引已存在: {}", indexUid);
+                return;
+            }
             TaskInfo taskInfo = meilisearchClient.createIndex(indexUid, primaryKey);
             log.info("创建索引成功: {}, taskId: {}", indexUid, taskInfo.getTaskUid());
         } catch (Exception e) {
@@ -54,6 +60,24 @@ public class MeilisearchTemplate {
         } catch (Exception e) {
             log.error("更新索引设置失败: {}", indexUid, e);
             throw new RuntimeException("更新索引设置失败", e);
+        }
+    }
+
+    public void updateSettings(String indexUid, String[] searchableAttributes,
+                               String[] filterableAttributes, String[] sortableAttributes) {
+        try {
+            Index index = getIndex(indexUid);
+            Settings settings = new Settings();
+            if (searchableAttributes != null) {
+                settings.setSearchableAttributes(searchableAttributes);
+            }
+            settings.setFilterableAttributes(filterableAttributes);
+            settings.setSortableAttributes(sortableAttributes);
+            TaskInfo taskInfo = index.updateSettings(settings);
+            log.info("更新索引完整设置成功: {}, taskId: {}", indexUid, taskInfo.getTaskUid());
+        } catch (Exception e) {
+            log.error("更新索引完整设置失败: {}", indexUid, e);
+            throw new RuntimeException("更新索引完整设置失败", e);
         }
     }
 
@@ -96,7 +120,7 @@ public class MeilisearchTemplate {
         try {
             Index index = getIndex(indexUid);
             return (SearchResultPaginated) index.search(
-                    com.meilisearch.sdk.SearchRequest.builder()
+                    SearchRequest.builder()
                             .q(query)
                             .page(page)
                             .hitsPerPage(hitsPerPage)

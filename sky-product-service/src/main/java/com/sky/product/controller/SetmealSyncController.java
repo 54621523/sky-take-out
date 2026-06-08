@@ -1,6 +1,6 @@
 package com.sky.product.controller;
 
-import com.sky.product.service.SetmealSyncService;
+import com.sky.product.service.searchengine.SetmealSyncService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;

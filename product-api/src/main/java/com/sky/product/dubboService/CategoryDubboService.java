@@ -50,4 +50,9 @@ public interface CategoryDubboService {
      * @param id
      */
     void startOrStop(Integer status, Long id);
+
+    /**
+     * 查询所有启用状态的分类列表（AI专用）
+     */
+    List<CategoryVO> listAllEnabled();
 }

@@ -1,4 +1,4 @@
-package com.sky.product.service.impl;
+package com.sky.product.service.impl.searchengine;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.sky.product.domain.document.DishDocument;
@@ -9,7 +9,7 @@ import com.sky.product.mapper.CategoryMapper;
 import com.sky.product.mapper.DishFlavorMapper;
 import com.sky.product.mapper.DishMapper;
 import com.sky.product.respository.DishSearchRepository;
-import com.sky.product.service.DishSyncService;
+import com.sky.product.service.searchengine.DishSyncService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
